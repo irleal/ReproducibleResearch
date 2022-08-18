@@ -5,21 +5,64 @@ output:
     keep_md: true
 ---
 
-
 ## Loading and preprocessing the data
 
-
+```{r}
+library(dplyr)
+library(xtable)
+library(flextable)
+library(tidyr)
+activity = read.csv("activity.csv")
+```
 
 ## What is mean total number of steps taken per day?
 
+```{r}
+activity_noNA = activity %>% 
+  na.omit()
+hist(activity_noNA$steps)
+```
 
+```{r}
+mean(activity_noNA$steps)
+median(activity_noNA$steps)
+```
 
 ## What is the average daily activity pattern?
 
+```{r}
+plot(activity$interval, activity$steps, type = "l")
+```
 
+```{r}
+which.max(activity$steps)
+```
 
 ## Imputing missing values
 
+```{r}
+sum(is.na(activity$steps))
+```
 
+```{r}
+activity_fill = activity %>%
+  replace_na(list(steps = 0))
+  
+```
+
+```{r}
+hist(activity_fill$steps)
+```
+
+```{r}
+activity_fill %>% 
+  group_by(date) %>%
+  summarise(mean(steps), median(steps))
+```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```{r}
+
+```
+
