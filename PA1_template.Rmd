@@ -12,57 +12,122 @@ library(dplyr)
 library(xtable)
 library(flextable)
 library(tidyr)
+library(ggplot2)
 activity = read.csv("activity.csv")
 ```
 
 ## What is mean total number of steps taken per day?
 
 ```{r}
-activity_noNA = activity %>% 
-  na.omit()
-hist(activity_noNA$steps)
+activity_steps = activity %>% 
+  na.omit() %>% 
+  group_by(date) %>% 
+  summarise(steps = sum(steps))
+
+hist(activity_steps$steps, 
+     main = NULL, 
+     xlab = "Total number of steps taken each day")
 ```
 
 ```{r}
-mean(activity_noNA$steps)
-median(activity_noNA$steps)
+mean(activity_steps$steps)
+median(activity_steps$steps)
 ```
 
 ## What is the average daily activity pattern?
 
 ```{r}
-plot(activity$interval, activity$steps, type = "l")
+activity_daily = activity %>% 
+  na.omit() %>% 
+  group_by(interval) %>% 
+  summarise(steps = sum(steps))
+
+ggplot(activity_daily, aes(x=interval, y=steps), type = "l") +
+  geom_line() + 
+  xlab("5-minute interval") +
+  ylab("Averaged number of steps taken")
 ```
 
 ```{r}
-which.max(activity$steps)
+activity_daily$interval[which.max(activity_daily$steps)]
 ```
 
 ## Imputing missing values
+
+Number of missing values in the dataset
 
 ```{r}
 sum(is.na(activity$steps))
 ```
 
+Calculate mean for the 5 minute interval
+
 ```{r}
-activity_fill = activity %>%
-  replace_na(list(steps = 0))
-  
+activity_fill = activity %>% 
+  na.omit() %>% 
+  group_by(interval) %>% 
+  summarise(steps = mean(steps))
+
+```
+
+```{r, cache=TRUE, warning=FALSE}
+listNa = list()
+for (i in 1:length(activity$steps)){
+  if(is.na(activity$steps[i]) == TRUE){
+    intervalo = activity_fill$interval[i]
+    listNa[i] <- activity_fill$steps[activity_fill$interval == intervalo]
+    }
+  else if(is.na(activity$steps[i]) == FALSE){
+    listNa[i] <- activity$steps[i]
+    next
+  }
+
+}
+
+activity_new = cbind(unlist(listNa), activity$date, activity$interval)
+activity_new = as.data.frame(activity_new)
+names(activity_new) = c("steps", "date", "interval")
+
+activity_new$steps = as.numeric(activity_new$steps)
+activity_new$interval = as.numeric(activity_new$interval)
+
 ```
 
 ```{r}
-hist(activity_fill$steps)
+activity_new_steps = activity_new %>% 
+  na.omit() %>% 
+  group_by(date) %>% 
+  summarise(steps = sum(steps))
+
+hist(activity_new_steps$steps, 
+     main = NULL, 
+     xlab = "Total number of steps taken each day")
 ```
 
 ```{r}
-activity_fill %>% 
-  group_by(date) %>%
-  summarise(mean(steps), median(steps))
+mean(activity_new_steps$steps)
+median(activity_new_steps$steps)
 ```
 
 ## Are there differences in activity patterns between weekdays and weekends?
 
 ```{r}
+activity_week = activity_new %>%
+  mutate(Weekend = ifelse(is.weekend(as.Date(date)), "Weekend", "Weekday")) %>% 
+  na.omit()
+
 
 ```
 
+```{r}
+activity_sum = activity_week %>% 
+  group_by(interval) %>%
+  mutate(steps = sum(steps))
+  
+
+ggplot(activity_sum, aes(x=interval, y=steps), type = "l") +
+  geom_line() + 
+  xlab("5-minute interval") +
+  ylab("Averaged number of steps taken") +
+  facet_wrap(~Weekend)
+```
